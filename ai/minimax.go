@@ -2,8 +2,8 @@ package ai
 
 import (
 	"cubes/main/engine"
-	"fmt"
 	"math"
+	"sync"
 )
 
 type evaluatedState struct {
@@ -11,64 +11,60 @@ type evaluatedState struct {
 	eval float32
 }
 
-var totalPasses int = 0
-
 func GetNextMove(state *engine.GameState, depth int) engine.MoveCoordinate {
 	moves := state.GetLegalMoves()
 	evaluatedStates := make([]evaluatedState, len(moves))
-	totalPasses = 0
 
-	// var wg sync.WaitGroup
-	// var mu sync.Mutex
+	var wg sync.WaitGroup
+	var mu sync.Mutex
 
 	for i, move := range moves {
-		// wg.Add(1)
+		wg.Add(1)
 		func(i int, move engine.MoveCoordinate) {
-			// defer wg.Done()
-			// mu.Lock()
-			evaluatedStates[i] = evaluatedState{moves[i], evaluateState(state, depth, -math.MaxFloat32, math.MaxFloat32, state.CurrentPlayer)}
-			// mu.Unlock()
-			fmt.Printf("%f:%d,%d\r\n", evaluatedStates[i].eval, evaluatedStates[i].move.X, evaluatedStates[i].move.Y)
+			defer wg.Done()
+			mu.Lock()
+			evaluatedStates[i] = evaluatedState{move, EvaluateState(state.GetMovedClone(move), depth, -math.MaxFloat32, math.MaxFloat32, state.CurrentPlayer, state.CurrentPlayer)}
+			mu.Unlock()
 		}(i, move)
 	}
-	// wg.Wait()
+	wg.Wait()
 	highest := evaluatedStates[0]
 	for i := range evaluatedStates {
-		// fmt.Printf("eval: %f, move: %d\r\n", evaluatedStates[i].eval, evaluatedStates[i].move)
 		if evaluatedStates[i].eval > highest.eval {
 			highest = evaluatedStates[i]
 		}
 	}
-	fmt.Printf("Steps taken: %d\r\n", totalPasses)
-	// fmt.Scanln()
 	return highest.move
 }
 
 // RETURNS 1 EVERY TIME?????
-func evaluateState(state *engine.GameState, depth int, alpha float32, beta float32, evaluateFor engine.FieldState) float32 {
-	totalPasses++
+func EvaluateState(state *engine.GameState, depth int, alpha float32, beta float32, evaluateAsPlayer engine.FieldState, maximizingPlayer engine.FieldState) float32 {
 	finished, winner := state.GetWinner()
+	if !state.IsValid() {
+		state.GetString()
+		panic("INVALID STATE:\r\n" + state.GetString())
+	}
+
 	if finished {
-		if winner == evaluateFor {
+		if winner == evaluateAsPlayer {
 			return float32(1_000) + float32(depth)*float32(100)
-		} else if winner == evaluateFor.Flip() {
+		} else if winner == evaluateAsPlayer.Flip() {
 			return float32(-1_000) - float32(depth)*float32(100)
 		} else {
 			return float32(0)
 		}
 	}
 
-	// fmt.Printf("%d\r\n", depth)
 	legalMoves := state.GetLegalMoves()
 	if depth <= 0 || len(legalMoves) == 0 {
-		return SimpleEval(state, evaluateFor)
+		return SimpleEval(state, evaluateAsPlayer)
 	}
 
-	if evaluateFor == state.CurrentPlayer {
-		value := float32(math.SmallestNonzeroFloat32)
+	if maximizingPlayer == state.CurrentPlayer {
+		value := float32(-math.MaxFloat32)
 		for i := range legalMoves {
 			newState := state.GetMovedClone(legalMoves[i])
-			value = max(value, evaluateState(newState, depth-1, alpha, beta, evaluateFor.Flip()))
+			value = max(value, EvaluateState(newState, depth-1, alpha, beta, evaluateAsPlayer, maximizingPlayer.Flip()))
 			if value > beta {
 				break
 			}
@@ -79,7 +75,7 @@ func evaluateState(state *engine.GameState, depth int, alpha float32, beta float
 		value := float32(math.MaxFloat32)
 		for i := range legalMoves {
 			newState := state.GetMovedClone(legalMoves[i])
-			value = min(value, evaluateState(newState, depth-1, alpha, beta, evaluateFor.Flip()))
+			value = min(value, EvaluateState(newState, depth-1, alpha, beta, evaluateAsPlayer, maximizingPlayer.Flip()))
 			if value < alpha {
 				break
 			}
@@ -96,10 +92,10 @@ func SimpleEval(state *engine.GameState, evaluateFor engine.FieldState) float32 
 		return 0
 	}
 	returnVal := (good - bad) / (good + bad)
-	if returnVal < float32(-100) {
-		return -100
-	} else if returnVal > float32(100) {
-		return 100
+	if returnVal < float32(-50) {
+		return -50
+	} else if returnVal > float32(50) {
+		return 50
 	}
 	return returnVal
 }

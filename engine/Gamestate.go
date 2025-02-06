@@ -115,7 +115,7 @@ func (state *GameState) findSpot(coordinate MoveCoordinate) int8 {
 	return -1
 }
 
-func (state GameState) isValid() bool {
+func (state GameState) IsValid() bool {
 	whiteFound, blackFound := 0, 0
 	for x := 0; x < 4; x++ {
 		for y := 0; y < 4; y++ {
@@ -199,4 +199,19 @@ func (state *GameState) GetLegalMoves() []MoveCoordinate {
 		}
 	}
 	return moves
+}
+
+func (state *GameState) GetString() string {
+	outStr := ""
+	for z := int8(0); z < 4; z++ {
+		for y := int8(0); y < 4; y++ {
+			for x := int8(0); x < 4; x++ {
+				outStr += state.Board[z][y][x].GetString()
+				outStr += " "
+			}
+			outStr += "\r\n"
+		}
+		outStr += "\r\n"
+	}
+	return outStr
 }

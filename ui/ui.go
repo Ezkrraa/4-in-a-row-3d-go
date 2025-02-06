@@ -17,6 +17,7 @@ func MainMenu() {
 		switch a {
 		case 0:
 			singlePlayer()
+		// TODO: add local multiplayer and rules
 		case 3:
 			return
 		}
@@ -40,7 +41,7 @@ func singlePlayer() {
 		}
 		state = *state.GetMovedClone(move)
 		clearTerminal()
-		PrintState(&state)
+		printState(&state)
 		finished, winner = state.GetWinner()
 		if finished {
 			break
@@ -48,7 +49,7 @@ func singlePlayer() {
 		move = ai.GetNextMove(&state, 4)
 		state = *state.GetMovedClone(move)
 		clearTerminal()
-		PrintState(&state)
+		printState(&state)
 	}
 	switch winner {
 	case engine.White:
