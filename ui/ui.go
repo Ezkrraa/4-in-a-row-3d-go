@@ -8,7 +8,7 @@ import (
 
 func MainMenu() {
 	for {
-		a, err := selectOption("Welcome to Sav's 3D 4 in a row. Please select an option:", []string{"Play singleplayer", "Play multiplayer (local)", "View rules", "Exit"})
+		a, err := selectOption("Welcome to Sav's 3D 4 in a row. Please select an option:", []string{"Play singleplayer", "Play multiplayer (local)", "Let the computer play itself", "View rules", "Exit"})
 		if err != nil {
 			clearTerminal()
 			fmt.Println("Bye :)")
@@ -17,6 +17,8 @@ func MainMenu() {
 		switch a {
 		case 0:
 			singlePlayer()
+		case 2:
+			noPlayer()
 		// TODO: add local multiplayer and rules
 		case 3:
 			return
@@ -60,4 +62,25 @@ func singlePlayer() {
 		fmt.Println("It was a draw.")
 	}
 	fmt.Scanln()
+}
+
+func noPlayer() {
+	state := engine.CreateEmpty()
+	finished, winner := state.GetWinner()
+	for {
+		finished, winner = state.GetWinner()
+		if finished {
+			break
+		}
+		move := ai.GetNextMove(&state, 5)
+		state = *state.GetMovedClone(move)
+		printState(&state)
+	}
+	if winner == engine.Empty {
+		fmt.Println("Draw.")
+	} else {
+		fmt.Println(winner.GetName() + " won.")
+	}
+	fmt.Println("Press any key to continue.")
+	fmt.Scan()
 }

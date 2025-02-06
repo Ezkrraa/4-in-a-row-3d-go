@@ -3,6 +3,7 @@ package engine
 type GameState struct {
 	Board         [4][4][4]FieldState
 	CurrentPlayer FieldState
+	MoveHistory   []MoveCoordinate
 }
 
 func CreateEmpty() GameState {
@@ -31,17 +32,19 @@ func CreateEmpty() GameState {
 			},
 		},
 		White,
+		[]MoveCoordinate{},
 	}
 }
 
 func (state *GameState) GetMovedClone(coordinate MoveCoordinate) *GameState {
-	newState := GameState{state.Board, state.CurrentPlayer}
+	newState := GameState{state.Board, state.CurrentPlayer, state.MoveHistory}
 	Z := state.findSpot(coordinate)
 	if Z < 0 {
 		panic("Invalid spot for move")
 	}
 	newState.Board[Z][coordinate.Y][coordinate.X] = newState.CurrentPlayer
 	newState.CurrentPlayer = newState.CurrentPlayer.Flip()
+	newState.MoveHistory = append(newState.MoveHistory, coordinate)
 	return &newState
 }
 
@@ -88,7 +91,16 @@ func (state *GameState) GetWinner() (bool, FieldState) {
 		return true, state.Board[0][3][3]
 	}
 	// nothing
-	return false, Empty
+	for z := 0; z < 4; z++ {
+		for y := 0; y < 4; y++ {
+			for x := 0; x < 4; x++ {
+				if state.Board[z][y][x] == Empty {
+					return false, Empty
+				}
+			}
+		}
+	}
+	return true, Empty
 }
 
 func isLineWon(n0 FieldState, n1 FieldState, n2 FieldState, n3 FieldState) bool {
